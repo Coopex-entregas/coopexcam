@@ -162,6 +162,13 @@ def ensure_schema():
             db.session.commit()
 
         cols = _column_names('meeting_room')
+        if 'admin_user_id' in cols:
+            try:
+                db.session.execute(text("ALTER TABLE meeting_room ALTER COLUMN admin_user_id DROP NOT NULL"))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
         if 'invite_token' in cols:
             db.session.execute(text("""
                 UPDATE meeting_room
@@ -411,13 +418,6 @@ def create_room():
     )
     db.session.add(room)
     db.session.flush()
-
-    cols = _column_names('meeting_room')
-    if 'admin_user_id' in cols:
-        db.session.execute(
-            text("UPDATE meeting_room SET admin_user_id = :v WHERE id = :id"),
-            {'v': room.id, 'id': room.id}
-        )
 
     admin_p = Participant(
         room=room,
