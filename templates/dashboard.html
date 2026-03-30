@@ -1,13 +1,14 @@
 {% extends 'base.html' %}
 {% block title %}Painel - CoopexCam{% endblock %}
 {% block body %}
-<div class="shell narrow">
+<div class="shell">
   <header class="topbar">
     <div>
-      <h1>CoopexCam</h1>
-      <p class="muted">Salas e histórico</p>
+      <div class="brand small-brand">COOPEXCAM</div>
+      <h1>Painel de reuniões</h1>
+      <p class="muted">Crie salas, acompanhe o histórico e compartilhe convites com os cooperados.</p>
     </div>
-    <div class="row gap">
+    <div class="row gap wrap">
       <a class="btn" href="{{ url_for('admin_history') }}">Histórico</a>
       <a class="btn" href="{{ url_for('admin_logout') }}">Sair</a>
     </div>
@@ -30,17 +31,13 @@
     <h2>Salas</h2>
     <div class="list-clean">
       {% for room in rooms %}
-      <div class="list-item">
+      <a class="list-item" href="{{ url_for('admin_room', code=room.code) }}">
         <div>
           <strong>{{ room.title }}</strong>
-          <div class="muted small">{{ room.code }} · {{ room.status }}</div>
+          <div class="muted small">{{ room.code }} · {{ room.status }} · {{ room.created_at.strftime('%d/%m/%Y %H:%M') if room.created_at else '' }}</div>
         </div>
-        <div class="row gap wrap">
-          <a class="btn" href="{{ url_for('admin_room', code=room.code) }}">Abrir</a>
-          <a class="btn" href="{{ url_for('export_pdf', code=room.code) }}">PDF</a>
-          <a class="btn" href="{{ url_for('export_xlsx', code=room.code) }}">Excel</a>
-        </div>
-      </div>
+        <div class="chip">abrir</div>
+      </a>
       {% else %}
       <p class="muted">Nenhuma sala ainda.</p>
       {% endfor %}
