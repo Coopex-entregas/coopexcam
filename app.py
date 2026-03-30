@@ -10,6 +10,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO, join_room, emit, disconnect
 from sqlalchemy import func, inspect, text
 from io import BytesIO
+import qrcode
+import base64
 from openpyxl import Workbook
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -41,6 +43,8 @@ class MeetingRoom(db.Model):
     allow_microphone = db.Column(db.Boolean, default=True, nullable=False)
     allow_camera = db.Column(db.Boolean, default=True, nullable=False)
     speech_mode = db.Column(db.String(20), default='controlled', nullable=False)
+    summary_text = db.Column(db.Text)
+    decisions_text = db.Column(db.Text)
 
 
 class Participant(db.Model):
@@ -157,6 +161,10 @@ def ensure_schema():
             statements.append("ALTER TABLE meeting_room ADD COLUMN allow_camera BOOLEAN DEFAULT TRUE")
         if 'speech_mode' not in cols:
             statements.append("ALTER TABLE meeting_room ADD COLUMN speech_mode VARCHAR(20) DEFAULT 'controlled'")
+        if 'summary_text' not in cols:
+            statements.append("ALTER TABLE meeting_room ADD COLUMN summary_text TEXT")
+        if 'decisions_text' not in cols:
+            statements.append("ALTER TABLE meeting_room ADD COLUMN decisions_text TEXT")
         for stmt in statements:
             db.session.execute(text(stmt))
         if statements:
@@ -308,6 +316,13 @@ def tally_vote(vote: VoteSession, room: MeetingRoom):
     }
 
 
+
+def qr_data_url(text_value):
+    img = qrcode.make(text_value)
+    bio = BytesIO()
+    img.save(bio, format='PNG')
+    return 'data:image/png;base64,' + base64.b64encode(bio.getvalue()).decode('ascii')
+
 def room_state(room: MeetingRoom):
     runtime = room_runtime[room.code]
     participants = active_participants_query(room.id).order_by(Participant.is_admin.desc(), Participant.display_name.asc()).all()
@@ -348,6 +363,8 @@ def room_state(room: MeetingRoom):
             'code': room.code,
             'invite_url': url_for('join_token_page', token=room.invite_token, _external=True),
             'camera_url': url_for('camera_companion', code=room.code, _external=True),
+            'camera_qr': qr_data_url(url_for('camera_companion', code=room.code, _external=True)),
+            'camera_url': url_for('camera_companion', code=room.code, _external=True),
             'status': room.status,
             'allow_microphone': room.allow_microphone,
             'allow_camera': room.allow_camera,
@@ -355,6 +372,8 @@ def room_state(room: MeetingRoom):
             'selected_id': runtime['selected_id'],
             'speaker_id': runtime['speaker_id'],
             'screen_share_id': runtime.get('screen_share_id'),
+            'summary_text': room.summary_text or '',
+            'decisions_text': room.decisions_text or '',
         },
         'participants': rows,
         'vote': vote_data,
@@ -491,6 +510,27 @@ def camera_companion(code):
     participant = get_or_create_named_participant(room, 'Câmera do Admin', 'Câmera do Admin', can_speak=True)
     return redirect(url_for('participant_room_page', join_token=participant.join_token))
 
+
+
+@app.route('/camera/<code>')
+def camera_companion(code):
+    room = MeetingRoom.query.filter_by(code=code).first_or_404()
+    if room.status != 'open':
+        return render_template('join_closed.html', room=room)
+    participant = get_or_create_named_participant(room, 'Câmera do Admin', 'Câmera do Admin', can_speak=True)
+    return redirect(url_for('participant_room_page', join_token=participant.join_token))
+
+@app.route('/admin/api/room/<code>/notes', methods=['POST'])
+def save_notes(code):
+    if not current_admin():
+        return jsonify(ok=False), 403
+    room = MeetingRoom.query.filter_by(code=code).first_or_404()
+    payload = request.json or {}
+    room.summary_text = (payload.get('summary_text') or '').strip()
+    room.decisions_text = (payload.get('decisions_text') or '').strip()
+    db.session.commit()
+    emit_room_state(room.code)
+    return jsonify(ok=True)
 
 @app.route('/room/<join_token>')
 def participant_room_page(join_token):
