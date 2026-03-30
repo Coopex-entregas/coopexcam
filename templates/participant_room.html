@@ -9,19 +9,32 @@
     </div>
     <button class="btn" id="toggleFullscreen">Tela cheia</button>
   </header>
+
   <section class="mobile-stage" id="mainStage">
     <video id="selectedVideo" autoplay playsinline></video>
     <div class="stage-empty" id="stageEmpty">Conectando...</div>
+    <button class="stage-toggle btn" id="backToGallery">Voltar à galeria</button>
   </section>
-  <section class="mobile-grid" id="videoGrid"></section>
+
+  <section class="mobile-grid gallery-grid" id="videoGrid"></section>
+
   <section class="mobile-actions">
     <button class="round-btn" id="toggleMic">Mic</button>
     <button class="round-btn" id="toggleCam">Cam</button>
     <button class="round-btn" id="raiseHand">Pedir fala</button>
     <button class="round-btn" id="lowerHand">Baixar mão</button>
   </section>
+
   <section class="card slim mobile-vote" id="voteBox"></section>
+
+  <section class="card slim mobile-vote">
+    <h3>Resumo</h3>
+    <div id="summaryView" class="muted">{{ state.room.summary_text or '' }}</div>
+    <h3 style="margin-top:10px">Decisões</h3>
+    <div id="decisionsView" class="muted">{{ state.room.decisions_text or '' }}</div>
+  </section>
 </div>
+
 <script>window.__INITIAL_STATE__ = {{ state|tojson }};</script>
 <script src="{{ url_for('static', filename='js/meeting.js') }}"></script>
 {% endblock %}
