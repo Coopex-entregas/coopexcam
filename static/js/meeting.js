@@ -20,12 +20,15 @@
   let currentState = window.__INITIAL_STATE__ || { room: {}, participants: [] };
   let micEnabled = true;
   let camEnabled = true;
+  let galleryPinned = false;
 
   const selectedVideo = document.getElementById('selectedVideo');
   const stageEmpty = document.getElementById('stageEmpty');
   const videoGrid = document.getElementById('videoGrid');
   const participantsList = document.getElementById('participantsList');
   const voteBox = document.getElementById('voteBox');
+  const summaryView = document.getElementById('summaryView');
+  const decisionsView = document.getElementById('decisionsView');
 
   function safePlay(video) {
     if (!video) return;
@@ -72,7 +75,11 @@
       tile.className = 'video-tile';
       tile.dataset.id = id;
       tile.innerHTML = `<video autoplay playsinline></video><div class="video-name"></div>`;
-      tile.addEventListener('click', () => promoteStream(stream, name, !!isLocal));
+      tile.addEventListener('click', () => {
+        galleryPinned = true;
+        promoteStream(stream, name, !!isLocal);
+        markSelected(id);
+      });
       videoGrid.appendChild(tile);
     }
     const video = tile.querySelector('video');
@@ -83,8 +90,7 @@
   }
 
   function removeTile(id) {
-    const tile = document.querySelector(`.video-tile[data-id="${id}"]`);
-    tile?.remove();
+    document.querySelector(`.video-tile[data-id="${id}"]`)?.remove();
     delete remoteStreams[id];
     if (peers[id]) {
       try { peers[id].close(); } catch (e) {}
@@ -99,6 +105,18 @@
     selectedVideo.dataset.label = label || '';
     if (stageEmpty) stageEmpty.style.display = 'none';
     safePlay(selectedVideo);
+  }
+
+  function markSelected(id) {
+    document.querySelectorAll('.video-tile').forEach(el => {
+      el.classList.toggle('selected', Number(el.dataset.id) === Number(id));
+    });
+  }
+
+  function resetToGallery() {
+    galleryPinned = false;
+    markSelected(0);
+    updateSelectedFromState();
   }
 
   function renderParticipants() {
@@ -140,65 +158,59 @@
     const vote = currentState.vote;
     const box = voteBox || document.getElementById('voteStats');
     if (!box) return;
-    if (!vote) {
-      box.innerHTML = '';
-      return;
-    }
+    if (!vote) { box.innerHTML = ''; return; }
 
-    const counts = Object.entries(vote.counts || {})
-      .map(([k, v]) => `<div class="badge">${k}: ${v}</div>`)
-      .join('');
-
-    const stats = `
-      <div class="row wrap gap">
-        <span class="badge">presentes ${vote.presentes}</span>
-        <span class="badge">aptos ${vote.aptos}</span>
-        <span class="badge">votaram ${vote.votaram}</span>
-        <span class="badge">faltam ${vote.faltam}</span>
-        ${counts}
-      </div>`;
+    const counts = Object.entries(vote.counts || {}).map(([k, v]) => `<div class="badge">${k}: ${v}</div>`).join('');
+    const stats = `<div class="row wrap gap">
+      <span class="badge">presentes ${vote.presentes}</span>
+      <span class="badge">aptos ${vote.aptos}</span>
+      <span class="badge">votaram ${vote.votaram}</span>
+      <span class="badge">faltam ${vote.faltam}</span>
+      ${counts}
+    </div>`;
 
     if (role === 'participant' && voteBox) {
-      const options = (vote.options || [])
-        .map(opt => `<button class="btn btn-primary vote-opt" data-option="${opt}">${opt}</button>`)
-        .join('');
-      box.innerHTML = `
-        <h3>${vote.title}</h3>
-        ${stats}
-        <div class="row wrap gap" style="margin-top:8px">${options}</div>
-        <div class="muted small" style="margin-top:8px">${vote.result || ''}</div>`;
-      box.querySelectorAll('.vote-opt').forEach(btn => {
-        btn.onclick = () => api(`/api/vote/${joinToken}`, 'POST', { option: btn.dataset.option });
-      });
+      const options = (vote.options || []).map(opt => `<button class="btn btn-primary vote-opt" data-option="${opt}">${opt}</button>`).join('');
+      box.innerHTML = `<h3>${vote.title}</h3>${stats}<div class="row wrap gap" style="margin-top:8px">${options}</div><div class="muted small" style="margin-top:8px">${vote.result || ''}</div>`;
+      box.querySelectorAll('.vote-opt').forEach(btn => btn.onclick = () => api(`/api/vote/${joinToken}`, 'POST', { option: btn.dataset.option }));
     } else {
       box.innerHTML = `${stats}<div class="muted small">${vote.title} · ${vote.result || ''}</div>`;
     }
+  }
+
+  function renderNotes() {
+    if (summaryView) summaryView.textContent = currentState.room?.summary_text || '';
+    if (decisionsView) decisionsView.textContent = currentState.room?.decisions_text || '';
+    const st = document.getElementById('summaryText');
+    const dt = document.getElementById('decisionsText');
+    if (st) st.value = currentState.room?.summary_text || '';
+    if (dt) dt.value = currentState.room?.decisions_text || '';
   }
 
   function applyState(state) {
     currentState = state || { room: {}, participants: [] };
     renderParticipants();
     renderVote();
+    renderNotes();
   }
 
   function updateSelectedFromState() {
-    const selected = Number(currentState.room?.selected_id || currentState.room?.speaker_id || 0);
+    const selected = Number(currentState.room?.screen_share_id || currentState.room?.selected_id || currentState.room?.speaker_id || 0);
     document.querySelectorAll('.video-tile').forEach(el => {
       el.classList.toggle('selected', Number(el.dataset.id) === selected);
       el.classList.toggle('active', Number(el.dataset.id) === Number(currentState.room?.speaker_id || 0));
     });
+    if (galleryPinned) return;
     if (selected && remoteStreams[selected]) {
-      const p = currentState.participants.find(x => x.id === selected);
+      const p = currentState.participants.find(x => Number(x.id) === selected);
       promoteStream(remoteStreams[selected], p ? p.display_name : 'Participante', false);
-    } else if (!selectedVideo?.srcObject && localStream) {
+    } else if (!selected && localStream && (!selectedVideo?.srcObject || selectedVideo.dataset.label === 'Você')) {
       promoteStream(localStream, 'Você', true);
     }
   }
 
   function setupAdminButtons() {
-    document.querySelectorAll('[data-bulk]').forEach(btn => {
-      btn.onclick = () => api(`/admin/api/room/${roomCode}/bulk`, 'POST', { action: btn.dataset.bulk });
-    });
+    document.querySelectorAll('[data-bulk]').forEach(btn => btn.onclick = () => api(`/admin/api/room/${roomCode}/bulk`, 'POST', { action: btn.dataset.bulk }));
     document.getElementById('copyInvite')?.addEventListener('click', async () => {
       await navigator.clipboard.writeText(document.getElementById('inviteUrl').value);
     });
@@ -219,23 +231,32 @@
       await api(`/admin/api/room/${roomCode}/vote`, 'POST', { title, options, rule, secret });
     });
     document.getElementById('endVote')?.addEventListener('click', () => api(`/admin/api/room/${roomCode}/vote/end`, 'POST'));
+    document.getElementById('saveNotes')?.addEventListener('click', async () => {
+      await api(`/admin/api/room/${roomCode}/notes`, 'POST', {
+        summary_text: document.getElementById('summaryText').value,
+        decisions_text: document.getElementById('decisionsText').value
+      });
+    });
     document.getElementById('shareScreen')?.addEventListener('click', async () => {
       try {
         const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
         const screenTrack = screen.getVideoTracks()[0];
+        socket.emit('screen_share', { join_token: joinToken, active: true });
         Object.values(peers).forEach(pc => {
           const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
           if (sender) sender.replaceTrack(screenTrack);
         });
+        galleryPinned = true;
         promoteStream(screen, 'Tela compartilhada', true);
         screenTrack.onended = () => {
+          socket.emit('screen_share', { join_token: joinToken, active: false });
           if (!localStream) return;
           const camTrack = localStream.getVideoTracks()[0];
           Object.values(peers).forEach(pc => {
             const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
             if (sender && camTrack) sender.replaceTrack(camTrack);
           });
-          promoteStream(localStream, 'Você', true);
+          resetToGallery();
         };
       } catch (e) {
         console.warn(e);
@@ -273,9 +294,7 @@
     const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
     peers[targetId] = pc;
 
-    if (localStream) {
-      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-    }
+    if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
     pc.onicecandidate = ev => {
       if (ev.candidate) socket.emit('signal', { join_token: joinToken, target_id: targetId, type: 'ice', candidate: ev.candidate });
@@ -286,16 +305,16 @@
       remoteStreams[targetId] = stream;
       const p = currentState.participants.find(x => Number(x.id) === Number(targetId));
       attachTile({ id: targetId, name: p ? p.display_name : `Participante ${targetId}`, stream, isLocal: false });
-      const selected = Number(currentState.room?.selected_id || currentState.room?.speaker_id || 0);
-      if (!selected || selected === Number(targetId) || !selectedVideo?.srcObject) {
-        promoteStream(stream, p ? p.display_name : 'Participante', false);
+      if (!galleryPinned) {
+        const selected = Number(currentState.room?.screen_share_id || currentState.room?.selected_id || currentState.room?.speaker_id || 0);
+        if (!selected || selected === Number(targetId) || !selectedVideo?.srcObject) {
+          promoteStream(stream, p ? p.display_name : 'Participante', false);
+        }
       }
     };
 
     pc.onconnectionstatechange = () => {
-      if (['failed', 'closed', 'disconnected'].includes(pc.connectionState)) {
-        removeTile(targetId);
-      }
+      if (['failed', 'closed', 'disconnected'].includes(pc.connectionState)) removeTile(targetId);
     };
 
     return pc;
@@ -338,7 +357,6 @@
   function syncPeers() {
     if (!myId || !localStream) return;
     const onlineIds = new Set();
-
     (currentState.participants || []).filter(p => p.online && Number(p.id) !== Number(myId)).forEach(p => {
       onlineIds.add(Number(p.id));
       if (!peers[p.id]) {
@@ -346,11 +364,9 @@
         if (shouldInitiate(p.id)) setTimeout(() => callPeer(p.id), 200);
       }
     });
-
     Object.keys(peers).forEach(id => {
       if (!onlineIds.has(Number(id))) removeTile(Number(id));
     });
-
     updateSelectedFromState();
   }
 
@@ -373,6 +389,8 @@
       console.warn('audio meter off', e);
     }
   }
+
+  document.getElementById('backToGallery')?.addEventListener('click', resetToGallery);
 
   socket.on('connect', async () => {
     await startMedia();
@@ -401,17 +419,9 @@
     alert(payload.reason || 'Removido da sala.');
     location.href = '/';
   });
-  socket.on('speaker_changed', payload => {
-    const sid = Number(payload.speaker_id || 0);
-    document.querySelectorAll('.video-tile').forEach(el => {
-      el.classList.toggle('active', Number(el.dataset.id) === sid);
-    });
-    if (sid && remoteStreams[sid]) {
-      const p = currentState.participants.find(x => Number(x.id) === sid);
-      promoteStream(remoteStreams[sid], p ? p.display_name : 'Participante', false);
-    }
-  });
 
-  if (role === 'admin') setupAdminButtons(); else setupParticipantButtons();
+  if (role === 'admin') setupAdminButtons();
+  else setupParticipantButtons();
+
   applyState(currentState);
 })();
