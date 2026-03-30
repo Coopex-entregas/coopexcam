@@ -1,16 +1,108 @@
-{% extends 'base.html' %}{% block title %}{{ room.title }} - Admin{% endblock %}{% block body %}
+{% extends 'base.html' %}
+{% block title %}{{ room.title }} - Admin{% endblock %}
+{% block body %}
 <div class="meeting-layout" data-role="admin" data-join-token="{{ join_token }}" data-room-code="{{ room.code }}">
-<aside class="sidebar clean-scroll">
-<div class="side-head"><h2>{{ room.title }}</h2><div class="muted small">{{ room.code }}</div></div>
-<div class="card slim"><div class="muted small">Link da sala</div><div class="copy-row"><input id="inviteUrl" value="{{ state.room.invite_url }}" readonly><button class="btn" id="copyInvite">Copiar</button></div></div>
-<div class="card slim"><div class="muted small">Câmera do celular para o admin</div><div class="copy-row"><input id="cameraUrl" value="{{ state.room.camera_url }}" readonly><button class="btn" id="copyCamera">Copiar</button></div><div class="qr-wrap"><img class="qr-img" src="{{ state.room.camera_qr_url }}" alt="QR da câmera"></div></div>
-<div class="card slim"><div class="row wrap gap">
-<button class="btn" data-bulk="eligible_all">Todos aptos</button><button class="btn" data-bulk="eligible_none">Tirar aptos</button><button class="btn" data-bulk="mute_all">Mutar todos</button><button class="btn" data-bulk="camera_off_all">Bloq câmeras</button><button class="btn" data-bulk="mic_global">Mic geral</button><button class="btn" data-bulk="cam_global">Cam geral</button><button class="btn" data-bulk="speech_mode">Modo fala</button></div></div>
-<div class="card slim"><h3>Votação</h3><input id="voteTitle" placeholder="Título da votação"><input id="voteOptions" value="Sim,Não,Abstenção" placeholder="Opções separadas por vírgula"><select id="voteRule"><option value="simple_majority">Maioria simples</option><option value="absolute_majority">Maioria absoluta</option><option value="two_thirds_present">2/3 dos presentes</option></select><label class="check"><input type="checkbox" id="voteSecret"> Voto secreto</label><div class="row gap"><button class="btn btn-primary" id="startVote">Abrir</button><button class="btn" id="endVote">Encerrar</button></div></div>
-<div class="card slim"><h3>Resumo da reunião</h3><textarea id="summaryText" class="notes-area" placeholder="Escreva o resumo da reunião">{{ state.room.summary_text }}</textarea><h3>Decisões</h3><textarea id="decisionsText" class="notes-area" placeholder="Escreva o que foi decidido">{{ state.room.decisions_text }}</textarea></div>
-<div class="card slim"><div class="row gap wrap"><button class="btn" id="shareScreen">Compartilhar tela</button><button class="btn" id="toggleRoom">Encerrar reunião</button><a class="btn" href="{{ url_for('export_pdf', code=room.code) }}">PDF</a><a class="btn" href="{{ url_for('export_xlsx', code=room.code) }}">Excel</a><button class="btn danger" id="deleteRoom">Excluir sala</button></div></div>
-<div class="card slim"><h3>Participantes</h3><div id="participantsList" class="participant-list"></div></div></aside>
-<main class="stage-area"><section class="stage-panel"><div class="stage-head"><div><h1 id="roomTitle">{{ room.title }}</h1><div class="muted small" id="roomMeta">{{ room.code }}</div></div><div id="voteStats" class="stats-inline"></div></div>
-<div class="main-stage" id="mainStage"><div class="stage-topbar"><span id="stageTitle">Galeria</span><button class="btn hidden" id="backToGallery">Voltar à galeria</button></div><video id="selectedVideo" autoplay playsinline></video><div class="stage-empty" id="stageEmpty">Selecione um participante ou aguarde quem está com a fala</div></div><div class="video-grid" id="videoGrid"></div></section></main></div>
-<script>window.__INITIAL_STATE__ = {{ state|tojson }};</script><script src="{{ url_for('static', filename='js/meeting.js') }}"></script>
+  <aside class="sidebar clean-scroll">
+    <div class="side-head">
+      <div class="brand small-brand">COOPEXCAM</div>
+      <h2>{{ room.title }}</h2>
+      <div class="muted small">{{ room.code }}</div>
+    </div>
+
+    <div class="card slim">
+      <div class="muted small">Convite da sala</div>
+      <div class="copy-row">
+        <input id="inviteUrl" value="{{ state.room.invite_url }}" readonly>
+        <button class="btn" id="copyInvite">Copiar</button>
+      </div>
+    </div>
+
+    <div class="card slim">
+      <div class="muted small">Usar celular como câmera do admin</div>
+      <div class="copy-row">
+        <input id="cameraUrl" value="{{ state.room.camera_url }}" readonly>
+        <button class="btn" id="copyCamera">Copiar</button>
+      </div>
+      <div class="qr-wrap">
+        <img class="qr-img" src="{{ state.room.camera_qr_url }}" alt="QR da câmera">
+      </div>
+    </div>
+
+    <div class="card slim">
+      <div class="row wrap gap">
+        <button class="btn" data-bulk="eligible_all">Todos aptos</button>
+        <button class="btn" data-bulk="eligible_none">Tirar aptos</button>
+        <button class="btn" data-bulk="mute_all">Mutar todos</button>
+        <button class="btn" data-bulk="camera_off_all">Bloq. câmeras</button>
+        <button class="btn" data-bulk="mic_global">Mic geral</button>
+        <button class="btn" data-bulk="cam_global">Cam geral</button>
+        <button class="btn" data-bulk="speech_mode">Modo fala</button>
+      </div>
+    </div>
+
+    <div class="card slim">
+      <h3>Votação</h3>
+      <input id="voteTitle" placeholder="Título da votação">
+      <input id="voteOptions" value="Sim,Não,Abstenção" placeholder="Opções separadas por vírgula">
+      <select id="voteRule">
+        <option value="simple_majority">Maioria simples</option>
+        <option value="absolute_majority">Maioria absoluta</option>
+        <option value="two_thirds_present">2/3 dos presentes</option>
+      </select>
+      <label class="check"><input type="checkbox" id="voteSecret"> Voto secreto</label>
+      <div class="row gap">
+        <button class="btn btn-primary" id="startVote">Abrir</button>
+        <button class="btn" id="endVote">Encerrar</button>
+      </div>
+    </div>
+
+    <div class="card slim">
+      <h3>Resumo da reunião</h3>
+      <textarea id="summaryText" class="notes-area" placeholder="Escreva o resumo da reunião">{{ state.room.summary_text }}</textarea>
+      <h3>Decisões</h3>
+      <textarea id="decisionsText" class="notes-area" placeholder="Escreva o que foi decidido">{{ state.room.decisions_text }}</textarea>
+    </div>
+
+    <div class="card slim">
+      <div class="row gap wrap">
+        <button class="btn" id="shareScreen">Compartilhar tela</button>
+        <button class="btn" id="toggleRoom">{{ 'Reabrir' if room.status == 'ended' else 'Encerrar reunião' }}</button>
+        <a class="btn" href="{{ url_for('export_pdf', code=room.code) }}">PDF</a>
+        <a class="btn" href="{{ url_for('export_xlsx', code=room.code) }}">Excel</a>
+        <button class="btn danger" id="deleteRoom">Excluir sala</button>
+      </div>
+    </div>
+
+    <div class="card slim">
+      <h3>Participantes</h3>
+      <div id="participantsList" class="participant-list"></div>
+    </div>
+  </aside>
+
+  <main class="stage-area">
+    <section class="stage-panel">
+      <div class="stage-head">
+        <div>
+          <h1>{{ room.title }}</h1>
+          <div class="muted small">{{ room.code }}</div>
+        </div>
+        <div id="voteStats" class="stats-inline"></div>
+      </div>
+
+      <div class="main-stage">
+        <div class="stage-topbar">
+          <span id="stageTitle">Galeria</span>
+          <button class="btn hidden" id="backToGallery">Voltar à galeria</button>
+        </div>
+        <video id="selectedVideo" autoplay playsinline></video>
+        <div class="stage-empty" id="stageEmpty">Selecione um participante ou aguarde quem está com a fala</div>
+      </div>
+
+      <div class="video-grid" id="videoGrid"></div>
+    </section>
+  </main>
+</div>
+
+<script>window.__INITIAL_STATE__ = {{ state|tojson }};</script>
+<script src="{{ url_for('static', filename='js/meeting.js') }}"></script>
 {% endblock %}
