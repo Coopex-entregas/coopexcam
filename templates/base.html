@@ -6,16 +6,11 @@
   <title>{% block title %}CoopexCam{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  {% block head %}{% endblock %}
 </head>
 <body>
   {% with messages = get_flashed_messages() %}
     {% if messages %}
-      <div class="flash-wrap">
-        {% for msg in messages %}
-          <div class="flash">{{ msg }}</div>
-        {% endfor %}
-      </div>
+      <div class="flash-wrap">{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}</div>
     {% endif %}
   {% endwith %}
   {% block body %}{% endblock %}
