@@ -507,18 +507,15 @@ def camera_companion(code):
     room = MeetingRoom.query.filter_by(code=code).first_or_404()
     if room.status != 'open':
         return render_template('join_closed.html', room=room)
-    participant = get_or_create_named_participant(room, 'Câmera do Admin', 'Câmera do Admin', can_speak=True)
+
+    participant = get_or_create_named_participant(
+        room,
+        'Câmera do Admin',
+        'Câmera do Admin',
+        can_speak=True
+    )
     return redirect(url_for('participant_room_page', join_token=participant.join_token))
-
-
-
-@app.route('/camera/<code>')
-def camera_companion(code):
-    room = MeetingRoom.query.filter_by(code=code).first_or_404()
-    if room.status != 'open':
-        return render_template('join_closed.html', room=room)
-    participant = get_or_create_named_participant(room, 'Câmera do Admin', 'Câmera do Admin', can_speak=True)
-    return redirect(url_for('participant_room_page', join_token=participant.join_token))
+    
 
 @app.route('/admin/api/room/<code>/notes', methods=['POST'])
 def save_notes(code):
