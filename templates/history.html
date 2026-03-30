@@ -1,34 +1,17 @@
-{% extends 'base.html' %}
-{% block title %}Histórico - CoopexCam{% endblock %}
-{% block body %}
+{% extends 'base.html' %}{% block title %}Histórico - CoopexCam{% endblock %}{% block body %}
 <div class="shell">
   <header class="topbar">
-    <div>
-      <div class="brand small-brand">COOPEXCAM</div>
-      <h1>Histórico de reuniões</h1>
-      <p class="muted">Acesse novamente as reuniões encerradas, seus resumos, decisões e resultados.</p>
-    </div>
-    <div class="row gap wrap">
-      <a class="btn" href="{{ url_for('dashboard') }}">Painel</a>
-      <a class="btn" href="{{ url_for('admin_logout') }}">Sair</a>
-    </div>
+    <div><div class="brand small-brand">COOPEXCAM</div><h1>Histórico de reuniões</h1><p class="muted">Acesse novamente reuniões encerradas, seus resumos, decisões e resultados.</p></div>
+    <div class="row gap wrap"><a class="btn" href="{{ url_for('dashboard') }}">Painel</a><a class="btn" href="{{ url_for('admin_logout') }}">Sair</a></div>
   </header>
-
   <section class="card">
     <div class="list-clean">
       {% for room in rooms %}
       <a class="history-row" href="{{ url_for('admin_room', code=room.code) }}">
-        <div>
-          <strong>{{ room.title }}</strong>
-          <div class="muted small">{{ room.code }} · {{ room.created_at.strftime('%d/%m/%Y %H:%M') if room.created_at else '' }}</div>
-          <div class="muted small">{{ (room.summary_text or '')[:120] }}</div>
-        </div>
+        <div><strong>{{ room.title }}</strong><div class="muted small">{{ room.code }} · {{ room.created_at.strftime('%d/%m/%Y %H:%M') if room.created_at else '' }}</div><div class="muted small">{{ (room.summary_text or '')[:120] }}</div></div>
         <div class="chip">{{ 'encerrada' if room.status == 'ended' else 'aberta' }}</div>
       </a>
-      {% else %}
-      <p class="muted">Nenhuma reunião registrada.</p>
-      {% endfor %}
+      {% else %}<p class="muted">Nenhuma reunião registrada.</p>{% endfor %}
     </div>
   </section>
-</div>
-{% endblock %}
+</div>{% endblock %}
