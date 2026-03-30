@@ -1,4 +1,12 @@
 {% extends 'base.html' %}
+{% block title %}Reunião encerrada{% endblock %}
 {% block body %}
-<div class="center-page"><div class="card auth-card"><h2>Sala encerrada</h2><p class="muted">Esta reunião não está mais aberta.</p></div></div>
+<div class="invite-shell">
+  <div class="invite-card card">
+    <div class="brand">COOPEXCAM</div>
+    <h1>Esta reunião foi encerrada</h1>
+    <p class="muted">Você ainda pode voltar depois para ler o resumo e as decisões, se tiver um link de participante já registrado.</p>
+    <div class="invite-title">{{ room.title }}</div>
+  </div>
+</div>
 {% endblock %}
