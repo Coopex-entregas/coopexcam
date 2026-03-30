@@ -1,6 +1,4 @@
-{% extends 'base.html' %}
-{% block title %}Convite - {{ room.title }}{% endblock %}
-{% block body %}
+{% extends 'base.html' %}{% block title %}Convite - {{ room.title }}{% endblock %}{% block body %}
 <div class="invite-shell">
   <div class="invite-card card">
     <div class="brand">COOPEXCAM</div>
@@ -8,16 +6,10 @@
     <div class="invite-title">{{ room.title }}</div>
     <p class="muted">Clique abaixo, informe seu nome completo e entre na reunião de forma rápida e segura.</p>
     <form method="post" class="stack">
-      <label>Nome completo</label>
-      <input name="full_name" required placeholder="Digite seu nome completo">
-      <label>Como deseja ser chamado</label>
-      <input name="display_name" required placeholder="Nome de exibição">
+      <label>Nome completo</label><input name="full_name" required placeholder="Digite seu nome completo">
+      <label>Como deseja ser chamado</label><input name="display_name" required placeholder="Nome de exibição">
       <button class="btn btn-primary" type="submit">Entrar na reunião</button>
     </form>
-    <div class="invite-meta">
-      <span class="badge">{{ room.code }}</span>
-      <span class="badge">{{ 'fala livre' if room.speech_mode == 'free' else 'fala controlada' }}</span>
-    </div>
+    <div class="invite-meta"><span class="badge">{{ room.code }}</span><span class="badge">{{ 'fala livre' if room.speech_mode == 'free' else 'fala controlada' }}</span></div>
   </div>
-</div>
-{% endblock %}
+</div>{% endblock %}
