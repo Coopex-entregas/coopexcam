@@ -7,10 +7,23 @@
       <h2>{{ room.title }}</h2>
       <div class="muted small">{{ room.code }}</div>
     </div>
+
     <div class="card slim">
       <div class="muted small">Link da sala</div>
-      <div class="copy-row"><input id="inviteUrl" value="{{ state.room.invite_url }}" readonly><button class="btn" id="copyInvite">Copiar</button></div>
+      <div class="copy-row">
+        <input id="inviteUrl" value="{{ state.room.invite_url }}" readonly>
+        <button class="btn" id="copyInvite">Copiar</button>
+      </div>
     </div>
+
+    <div class="card slim qr-wrap">
+      <div class="muted small">Usar celular como câmera</div>
+      {% if state.room.camera_qr %}
+      <img class="qr-img" src="{{ state.room.camera_qr }}" alt="QR da câmera">
+      {% endif %}
+      <div class="muted small" style="margin-top:8px">Escaneie no celular para abrir a câmera</div>
+    </div>
+
     <div class="card slim">
       <div class="row wrap gap">
         <button class="btn" data-bulk="eligible_all">Todos aptos</button>
@@ -22,6 +35,7 @@
         <button class="btn" data-bulk="speech_mode">Modo fala</button>
       </div>
     </div>
+
     <div class="card slim">
       <h3>Votação</h3>
       <input id="voteTitle" placeholder="Título da votação">
@@ -32,8 +46,20 @@
         <option value="two_thirds_present">2/3 dos presentes</option>
       </select>
       <label class="check"><input type="checkbox" id="voteSecret"> Voto secreto</label>
-      <div class="row gap"><button class="btn btn-primary" id="startVote">Abrir</button><button class="btn" id="endVote">Encerrar</button></div>
+      <div class="row gap">
+        <button class="btn btn-primary" id="startVote">Abrir</button>
+        <button class="btn" id="endVote">Encerrar</button>
+      </div>
     </div>
+
+    <div class="card slim">
+      <h3>Resumo da reunião</h3>
+      <textarea id="summaryText" class="txt-area" placeholder="Resumo do que foi tratado">{{ state.room.summary_text or '' }}</textarea>
+      <h3>Decisões</h3>
+      <textarea id="decisionsText" class="txt-area" placeholder="O que foi decidido">{{ state.room.decisions_text or '' }}</textarea>
+      <button class="btn btn-primary" id="saveNotes">Salvar</button>
+    </div>
+
     <div class="card slim">
       <div class="row gap wrap">
         <button class="btn" id="shareScreen">Compartilhar tela</button>
@@ -43,28 +69,34 @@
         <button class="btn danger" id="deleteRoom">Excluir sala</button>
       </div>
     </div>
+
     <div class="card slim">
       <h3>Participantes</h3>
       <div id="participantsList" class="participant-list"></div>
     </div>
   </aside>
+
   <main class="stage-area">
     <section class="stage-panel">
       <div class="stage-head">
         <div>
-          <h1 id="roomTitle">{{ room.title }}</h1>
-          <div class="muted small" id="roomMeta">{{ room.code }}</div>
+          <h1>{{ room.title }}</h1>
+          <div class="muted small">{{ room.code }}</div>
         </div>
         <div id="voteStats" class="stats-inline"></div>
       </div>
+
       <div class="main-stage" id="mainStage">
         <video id="selectedVideo" autoplay playsinline></video>
         <div class="stage-empty" id="stageEmpty">Aguardando vídeo principal</div>
+        <button class="stage-toggle btn" id="backToGallery">Voltar à galeria</button>
       </div>
-      <div class="video-grid" id="videoGrid"></div>
+
+      <div class="video-grid gallery-grid" id="videoGrid"></div>
     </section>
   </main>
 </div>
+
 <script>window.__INITIAL_STATE__ = {{ state|tojson }};</script>
 <script src="{{ url_for('static', filename='js/meeting.js') }}"></script>
 {% endblock %}
